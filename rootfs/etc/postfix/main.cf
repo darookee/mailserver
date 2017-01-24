@@ -181,6 +181,7 @@ smtpd_recipient_restrictions=
     reject_rhsbl_sender urired.spameatingmonkey.net,
     reject_rhsbl_client urired.spameatingmonkey.net,
     permit_dnswl_client list.dnswl.org,
+    check_client_access mysql:/etc/postfix/sql/client-access.cf,
     check_policy_service inet:127.0.0.1:10023
 
 ##
