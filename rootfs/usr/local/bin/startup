@@ -203,6 +203,13 @@ else
   echo "[INFO] No extra postfix settings loaded because optional custom configuration file (/var/mail/postfix/custom.conf) is not provided."
 fi
 
+# copy postfix sql config from host
+for conffile in /var/mail/postfix/custom/sql/*.cf; do
+    echo "[INFO] Postfix: Copying $(basename $conffile)  from host"
+    cp -rf $conffile /etc/postfix/custom/sql/$(basename $conffile)
+    _envtpl /etc/postfix/custom/sql/$(basename $conffile)
+done
+
 # Check database hostname
 grep -q "${DBHOST}" /etc/hosts
 
@@ -244,6 +251,7 @@ sed -i -e "s/DOVECOT_MIN_PROCESS/${DOVECOT_MIN_PROCESS}/" \
 
 # copy all override files to conf.d
 for conffile in /var/mail/dovecot/*.conf; do
+    echo "[INFO] Dovecot: Copying $(basename $conffile) from host"
     cp -rf $conffile /etc/dovecot/conf.d/$(basename $conffile)
     _envtpl /etc/dovecot/conf.d/$(basename $conffile)
 done
