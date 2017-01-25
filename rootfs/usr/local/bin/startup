@@ -242,6 +242,12 @@ DOVECOT_MAX_PROCESS=$((`nproc` * 500))
 sed -i -e "s/DOVECOT_MIN_PROCESS/${DOVECOT_MIN_PROCESS}/" \
        -e "s/DOVECOT_MAX_PROCESS/${DOVECOT_MAX_PROCESS}/" /etc/dovecot/conf.d/10-master.conf
 
+# copy all override files to conf.d
+for conffile in /var/mail/dovecot/*.conf; do
+    cp -rf $conffile /etc/dovecot/conf.d/$(basename $conffile)
+    _envtpl /etc/dovecot/conf.d/$(basename $conffile)
+done
+
 # Disable virus check if asked
 if [ "$DISABLE_CLAMAV" = true ]; then
   echo "[INFO] ClamAV is disabled, service will not start."
