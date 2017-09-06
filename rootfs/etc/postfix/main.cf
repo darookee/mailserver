@@ -3,6 +3,7 @@
 #######################
 
 smtpd_banner         = $myhostname ESMTP $mail_name
+compatibility_level  = 2
 biff                 = no
 append_dot_mydomain  = no
 readme_directory     = no
@@ -20,9 +21,16 @@ inet_protocols = all
 myhostname    = {{ FQDN }}
 myorigin      = {{ FQDN }}
 mydestination = localhost localhost.$mydomain
-mynetworks    = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
+mynetworks    = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 {{ RELAY_NETWORKS }}
 
 alias_maps = hash:/etc/aliases
+
+###############
+## SMTP/UTF8 ##
+###############
+
+smtputf8_enable             = yes
+smtputf8_autodetect_classes = all
 
 ###################
 ## RATE LIMITING ##
@@ -43,7 +51,8 @@ default_destination_recipient_limit = 10
 
 # Smtp ( OUTGOING )
 smtp_tls_loglevel            = 1
-smtp_tls_security_level      = may
+smtp_tls_security_level      = dane
+smtp_dns_support_level       = dnssec
 smtp_tls_CAfile              = {{ CAFILE }}
 smtp_tls_protocols           = !SSLv2, !SSLv3
 smtp_tls_mandatory_protocols = !SSLv2, !SSLv3
@@ -138,13 +147,13 @@ smtpd_relay_restrictions=
 
 # * reject_non_fqdn_sender : Reject when the MAIL FROM address is not in fully-qualified domain form
 # * reject_unknown_sender_domain : Reject when the MAIL FROM domain has no DNS MX, no DNS A record or a malformed MX record
-# * reject_authenticated_sender_login_mismatch: Reject when the client is not (SASL) logged in as that MAIL FROM address owner for authenticated clients only
+# * reject_sender_login_mismatch: Reject when the client is not (SASL) logged in as that MAIL FROM address owner or when the client is (SASL) logged in, but the client login name doesn't own the MAIL FROM address
 # * reject_rhsbl_sender : Reject when the MAIL FROM domain is blacklisted in dbl.spamhaus.org
 
 smtpd_sender_restrictions=
     reject_non_fqdn_sender,
     reject_unknown_sender_domain,
-    reject_authenticated_sender_login_mismatch,
+    reject_sender_login_mismatch,
     reject_rhsbl_sender dbl.spamhaus.org
 
 ##
@@ -158,7 +167,6 @@ smtpd_sender_restrictions=
 # * reject_non_fqdn_recipient : Reject when the RCPT TO address is not in fully-qualified domain form
 # * reject_unlisted_recipient : Reject when the RCPT TO address is not listed in the list of valid recipients for its domain
 # * reject_rbl_client : Reject connections from IP addresses blacklisted in zen.spamhaus.org
-# * check_policy_service : Apply greylisting policy with postgrey/gross if RCPT TO domain isn't whitelisted on dnswl.org
 
 smtpd_recipient_restrictions=
     permit_mynetworks,
@@ -205,19 +213,21 @@ smtpd_helo_restrictions =
     reject_non_fqdn_helo_hostname
 
 ############
-## AMAVIS ##
+## RSPAMD ##
 ############
 
-content_filter = amavis:[127.0.0.1]:10024
-receive_override_options = no_address_mappings
-
-##########################
-## MILTERS (DKIM/DMARC) ##
-##########################
-
 milter_protocol       = 6
+milter_mail_macros    = i {mail_addr} {client_addr} {client_name} {auth_authen}
 milter_default_action = accept
-dkim_milter           = inet:localhost:8891
-dmarc_milter          = inet:localhost:8893
-smtpd_milters         = $dkim_milter,$dmarc_milter
-non_smtpd_milters     = $dkim_milter
+smtpd_milters         = inet:localhost:11332
+non_smtpd_milters     = inet:localhost:11332
+
+############
+## ZEYPLE ##
+############
+
+content_filter = zeyple
+
+#######################
+## YOUR CUSTOM RULES ##
+#######################
